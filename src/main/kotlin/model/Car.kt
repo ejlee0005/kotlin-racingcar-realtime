@@ -1,4 +1,4 @@
-package racingcar.model.model
+package model
 
 import kotlinx.coroutines.delay
 import kotlin.random.Random
