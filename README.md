@@ -9,12 +9,13 @@
 
 ### 힌트
 - `CoroutineScope.launch{}`를 사용하여 각 자동차를 관리한다.
-
+- `List<Job>`으로 구현. 우승자 출력되면 나머지 `Job`들 취소
+- 
 ### TODO
-- [ ] 자동차 모델 생성
-    - [ ] property: 이름, 위치
-    - [ ] function1: 0ms ~ 500ms 사이의 랜덤한 시간 동안 delay한 후, 1칸 전진
-    - [ ] function2: 현재 전진 상황 반환
+- [x] 자동차 모델 생성
+    - [x] property: 이름, 위치
+    - [x] function1: 0ms ~ 500ms 사이의 랜덤한 시간 동안 delay한 후, 1칸 전진
+    - [x] function2: 현재 전진 상황 반환 (`toString()`)
 
 - [ ] Racing 컨트롤러 생성
     - [ ] 자동차 관리
@@ -26,3 +27,5 @@
 - [ ] 결과 View
     - [ ] 매번 움직일 때마다 현재 위치를 즉시 출력
     - [ ] 최종 우승자 출력 (%s가 최종 우승했습니다.)
+
+
