@@ -1,47 +1,87 @@
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable.isActive
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import model.Car
-import kotlin.collections.map
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.coroutines.coroutineContext
 
 class Race(
-    val cars: List<Car>,
+    cars: List<Car>,
     val goal: Int,
+    private val channel: Channel<Car> = Channel(Channel.UNLIMITED),
     dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
-    private val scope = CoroutineScope(dispatcher + SupervisorJob())
-    private lateinit var jobs: List<Job>
+    private val _cars: MutableList<Car> = cars.toMutableList()
+    val cars: List<Car>
+        get() = _cars.toList()
 
-    suspend fun start() {   // 자동차들을 코루틴으로 만들어서 실행시킴. coroutineScope: 구조화된 동시성을 제공함.
-//        coroutineScope {
-//            jobs = cars.map {      // <구조화된 동시성을 위해 자동차들을 Job으로 만들기>
-//                launch { move(it) }
-//            }
-//        }
+    private val scope: CoroutineScope = CoroutineScope(dispatcher + SupervisorJob())
+    val isPaused: AtomicBoolean = AtomicBoolean(false)
 
-        val jobs = cars.map {
-            scope.launch { move(it) }
+    suspend fun start() {
+        launchRace()
+        launchInput()
+        monitorRace()
+    }
+
+    private fun launchRace() {
+        _cars.forEach { car ->
+            scope.launch { move(car) }
         }
-        jobs.joinAll()
+    }
+
+    private fun launchInput() {
+        scope.launch {
+            while (isActive) {
+                val input = readlnOrNull()
+                if (input != null) {
+                    pauseRace()
+                    val command = "add car4"
+                    val carName = command.split(" ")[1]
+                    channel.send(Car(carName))
+                    resumeRace()
+                }
+            }
+        }
+    }
+
+    private suspend fun monitorRace() {
+        while (coroutineContext.isActive) {
+            while (!channel.isEmpty) {
+                val newCar = channel.receive()
+                println("${newCar.name} 참가 완료!")
+                _cars.add(newCar)
+                scope.launch { move(newCar) }
+            }
+        }
+    }
+
+    private fun pauseRace() {
+        isPaused.set(true)
+    }
+
+    private fun resumeRace() {
+        isPaused.set(false)
     }
 
     private suspend fun move(car: Car) {
-        while (isActive && car.position < goal) {
-            car.move()
-            if (car.position == goal) {
-                withContext(Dispatchers.IO) {
-                    println("${car.name}가 최종 우승했습니다.")
-                }
-                // jobs.map { it.cancel() }    // jobs.forEach { it.cancel() }
-                scope.cancel()
+        while (coroutineContext.isActive && car.position < goal) {
+            if (!isPaused.get()) {
+                car.move()
+                car.checkWinner()
             }
+        }
+    }
+
+    private fun Car.checkWinner() {
+        if (position == goal) {
+            println("${name}가 최종 우승했습니다.")
+            scope.cancel()
         }
     }
 }

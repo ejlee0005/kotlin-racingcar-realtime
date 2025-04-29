@@ -13,6 +13,7 @@ data class Car(
         delay(duration)
         position++
         println("${name} : ${"-".repeat(position)}")
-        // if (name == "car1") { throw IllegalStateException() }
     }
+
+    override fun toString(): String = "$name : ${"-".repeat(position)}"
 }
